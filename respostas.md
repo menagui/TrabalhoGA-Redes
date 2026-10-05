@@ -108,3 +108,87 @@ Na simulação, um Hello apareceu em `11.217 s` e o próximo em `21.217 s`. A di
 Se o roteador não receber Hello do vizinho durante 40 segundos, a vizinhança é removida e as rotas são recalculadas.
 
 Evidência: `evidencias/prints/q6_hellos.png`.
+
+## Etapa 2 - Filial legada
+
+### Q7. Os quatro relógios do RIP
+
+O `show ip protocols` de FIL-R1 mostra os quatro timers:
+
+```text
+Sending updates every 30 seconds, next due in 19 seconds
+Invalid after 180 seconds, hold down 180, flushed after 240
+```
+
+| Timer | Valor | Papel |
+|---|---:|---|
+| Update | 30 s | Intervalo entre os envios periódicos da tabela de rotas aos vizinhos. |
+| Invalid | 180 s | Se uma rota não for anunciada nesse tempo, ela é marcada como inválida (métrica 16). |
+| Holddown | 180 s | Depois que uma rota fica inválida, o roteador ignora anúncios piores sobre ela nesse período, para evitar loops. |
+| Flush | 240 s | Se a rota continuar sem anúncio, ela é removida da tabela. |
+
+A linha `next due in 19 seconds` mostra quanto tempo falta para o próximo update periódico de FIL-R1.
+
+Evidência: `evidencias/etapa2.pdf`, seção 1.2 (`show ip protocols` em FIL-R1).
+
+### Q8. Por dentro de um Response
+
+O RIP Response periódico de FIL-R1 tem destino `224.0.0.9`, com origem `10.1.1.177` e porta UDP 520. No cabeçalho RIP, `CMD:0x02` indica Response e `VER:0x02` indica RIPv2.
+
+O RIPv2 usa o multicast `224.0.0.9` porque só os roteadores RIPv2 processam esse grupo. O RIPv1 usava broadcast `255.255.255.255`, que obriga todos os equipamentos da rede a receber e processar o pacote.
+
+Cada entrada de rota do Response tem estes campos:
+
+| Campo | Valor no print |
+|---|---|
+| Address Family | 2 (IP) |
+| Route Tag | 0 |
+| Network Address | 10.1.1.96 |
+| Subnet Mask | 255.255.255.224 |
+| Next Hop | 10.1.1.177 |
+| Metric | 1 |
+
+O campo Subnet Mask é a razão de o RIPv2 suportar VLSM. Cada rota leva a sua própria máscara. Por isso, `/27`, `/28` e `/30` convivem dentro da rede `10.0.0.0`. O RIPv1 não envia máscara, então o receptor teria de deduzir a máscara pela classe do endereço.
+
+O Response tem só uma entrada, a LAN-FIL1. Pelo split horizon, FIL-R1 não anuncia pela serial a rede `10.1.1.176/30` dessa própria interface nem a `10.1.1.128/28`, que aprendeu de FIL-R2.
+
+Evidência: `evidencias/prints/q8_rip_response.png`.
+
+### Q9. Métrica em saltos
+
+```text
+FIL-R2#show ip route rip
+     10.0.0.0/8 is variably subnetted, 5 subnets, 4 masks
+R       10.1.1.96/27 [120/1] via 10.1.1.177, 00:00:13, Serial0/3/0
+```
+
+O `120` é a distância administrativa do RIP. O `1` é a métrica: existe um salto até a LAN-FIL1, que é FIL-R1. A rota foi aprendida pela `Serial0/3/0`, com próximo salto `10.1.1.177`.
+
+O RIP é um protocolo de vetor de distância simples. Ele mede o caminho pela quantidade de roteadores e não considera a velocidade dos enlaces.
+
+A métrica 16 significa rede inalcançável. Na prática, o RIP só alcança destinos a até 15 saltos. Esse limite também encerra a contagem ao infinito durante falhas, mas impede o uso do RIP em redes com cadeias maiores de roteadores.
+
+### Q10. Tagarelice comparada
+
+Com a rede estável, cada protocolo continua enviando mensagens periódicas:
+
+| | RIP (filial) | OSPF (matriz) |
+|---|---|---|
+| Mensagem | Response com a tabela de rotas | Hello |
+| Destino | 224.0.0.9 | 224.0.0.5 |
+| Intervalo | 30 s | 10 s |
+| Tamanho do pacote IP | 52 bytes | 20 + 48 = 68 bytes |
+| Mensagens por minuto | 2 | 6 |
+| Bytes por minuto, por roteador e enlace | 2 × 52 = 104 | 6 × 68 = 408 |
+
+No print do RIP, FIL-R1 enviou Responses em `3.850 s` e `29.809 s`. Na sequência do print da Q8, os envios de FIL-R1 aparecem em `4.010`, `31.262`, `61.113`, `87.809`, `117.680` e `144.509 s`. Os intervalos ficam entre 26 e 30 s porque o IOS aplica uma pequena variação aleatória ao timer de 30 s. Isso evita que todos os roteadores enviem updates ao mesmo tempo.
+
+Os 52 bytes do Response são 20 de cabeçalho IP, 8 de UDP, 4 de cabeçalho RIP e 20 da única entrada de rota. Cada nova rota acrescenta 20 bytes ao Response, e ele é reenviado inteiro a cada 30 s. Assim, o gasto do RIP cresce junto com a tabela de rotas.
+
+No print do OSPF, o Hello de MTZ-R2 tem `TYPE:1`, destino `224.0.0.5` e `PACKET LENGTH:48`. O Packet Tracer mostra `TL:20` no cabeçalho IP desse pacote, que corresponde só ao cabeçalho IP. Por isso o tamanho foi calculado como 20 bytes de IP mais os 48 bytes do OSPF, ou seja, 68 bytes. O intervalo de 10 s entre Hellos foi medido na Q6 (`11.217 s` e `21.217 s`).
+
+Os 48 bytes do Hello são 24 de cabeçalho OSPF, 20 de campos fixos do Hello e 4 para o único vizinho do enlace. O Hello do OSPF não carrega rotas. Seu tamanho depende só da quantidade de vizinhos no enlace. Por isso, o tráfego periódico do OSPF continua igual quando a rede ganha novas sub-redes. O OSPF só envia informação de rotas quando há mudança na topologia.
+
+Nesta medição, o OSPF gasta mais bytes por minuto do que o RIP (408 contra 104), porque a filial tem poucas rotas e o Hello é enviado com mais frequência. Esse resultado inverte quando a rede cresce. Cada rota nova acrescenta 20 bytes ao Response do RIP, e a partir de 9 rotas o RIP passa a gastar mais (2 × (32 + 20 × 9) = 424 bytes por minuto). O Hello do OSPF continua com 68 bytes. O protocolo que cresce com a tabela de rotas é o RIP.
+
+Evidências: `evidencias/prints/q10_rip_periodico.png`, `evidencias/prints/q10_ospf_periodico.png`, `evidencias/prints/q8_rip_response.png` e `evidencias/prints/q6_hellos.png`.
