@@ -1,0 +1,94 @@
+C:\>ipconfig /all
+
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..: 
+   Physical Address................: 0090.21E4.340E
+   Link-local IPv6 Address.........: FE80::290:21FF:FEE4:340E
+   IPv6 Address....................: ::
+   IPv4 Address....................: 10.1.1.130
+   Subnet Mask.....................: 255.255.255.240
+   Default Gateway.................: ::
+                                     10.1.1.129
+   DHCP Servers....................: 10.1.1.146
+   DHCPv6 IAID.....................: 
+   DHCPv6 Client DUID..............: 00-01-00-01-4C-5E-73-8C-00-90-21-E4-34-0E
+   DNS Servers.....................: ::
+                                     0.0.0.0
+
+Bluetooth Connection:
+
+   Connection-specific DNS Suffix..: 
+   Physical Address................: 0005.5E8B.0A11
+   Link-local IPv6 Address.........: ::
+   IPv6 Address....................: ::
+   IPv4 Address....................: 0.0.0.0
+   Subnet Mask.....................: 0.0.0.0
+   Default Gateway.................: ::
+                                     0.0.0.0
+   DHCP Servers....................: 0.0.0.0
+   DHCPv6 IAID.....................: 
+   DHCPv6 Client DUID..............: 00-01-00-01-4C-5E-73-8C-00-90-21-E4-34-0E
+   DNS Servers.....................: ::
+                                     0.0.0.0
+
+
+C:\>
+C:\>
+C:\>
+C:\>
+C:\>tracert 10.1.1.146
+
+Tracing route to 10.1.1.146 over a maximum of 30 hops: 
+
+  1   0 ms      0 ms      0 ms      10.1.1.129
+  2   1 ms      5 ms      4 ms      10.1.1.177
+  3   4 ms      1 ms      4 ms      10.1.1.173
+  4   6 ms      6 ms      10 ms     10.1.1.169
+  5   0 ms      1 ms      3 ms      10.1.1.153
+  6   6 ms      2 ms      3 ms      10.1.1.146
+
+Trace complete.
+
+C:\>tracert 10.1.1.146
+
+Tracing route to 10.1.1.146 over a maximum of 30 hops: 
+
+  1   0 ms      0 ms      0 ms      10.1.1.129
+  2   2 ms      2 ms      2 ms      10.1.1.177
+  3   5 ms      1 ms      6 ms      10.1.1.173
+  4   1 ms      1 ms      9 ms      10.1.1.165
+  5   1 ms      10 ms     7 ms      10.1.1.153
+  6   2 ms      1 ms      0 ms      10.1.1.146
+
+Trace complete.
+
+C:\>ipconfig /release
+
+   IP Address......................: 0.0.0.0
+   Subnet Mask.....................: 0.0.0.0
+   Default Gateway.................: 0.0.0.0
+   DNS Server......................: 0.0.0.0
+
+C:\>ipconfig /renew
+
+   IP Address......................: 10.1.1.132
+   Subnet Mask.....................: 255.255.255.240
+   Default Gateway.................: 10.1.1.129
+   DNS Server......................: 0.0.0.0
+
+C:\>
+
+C:\>ipconfig /release
+
+   IP Address......................: 0.0.0.0
+   Subnet Mask.....................: 0.0.0.0
+   Default Gateway.................: 0.0.0.0
+   DNS Server......................: 0.0.0.0
+
+C:\>ipconfig /renew
+
+   IP Address......................: 10.1.1.132
+   Subnet Mask.....................: 255.255.255.240
+   Default Gateway.................: 10.1.1.129
+   DNS Server......................: 0.0.0.0
